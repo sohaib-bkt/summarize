@@ -92,24 +92,49 @@ curl -s "https://r.jina.ai/URL"
 For Reddit specifically, if the page is blocked or heavy, try the JSON mirror
 `https://www.reddit.com/...json` or a printable mirror via Jina.
 
-## Step 3: Generate detailed summary
+## Step 3: Generate detailed, information-dense summary
 
-Using the fetched content, generate a comprehensive summary with:
+> **CRITICAL — extract the real information, do not produce empty narration.**
+> A useful summary reproduces the concrete facts, definitions, structures,
+> examples, distinctions, and figures present in the source. It is NOT a vague
+> paraphrase like "the text explains how X relates to Y." Your summary should
+> contain NEW information vs. what the reader would expect, not generic filler.
+> If someone reads your summary without the source, they must still learn the
+> actual content.
 
-1. **Narrative essay-style paragraphs** — write as flowing prose, not bullet points. Cover the full context, arguments, and conclusions.
+Work from the fetched content and include, as applicable:
 
-2. **Key points section** — after the narrative, include organized bullet points for quick reference:
-   - Main topics covered
-   - Key arguments or findings
-   - Notable quotes or statements
-   - Conclusions or recommendations
-
-3. **For videos specifically**:
+1. **All concrete structures and relations** from the source. For tables,
+   hierarchies, or "who answers to whom" content, reproduce the actual chain /
+   diagram as text (e.g. `roi → président du gouvernement → ministres`, the two
+   parallel circuits, etc.). Do not just say "the text describes two circuits" —
+   name the actors in each circuit and their role.
+2. **Concrete examples** used in the source (e.g. a real scenario, an analogy,
+   a practical case). Include the specifics: what was proposed, who does what,
+   who cannot do what.
+3. **Key definitions and precise distinctions** (e.g. wali vs. caïd, "cabinet"
+   vs. "official", circuit of the State vs. circuit of elected collectivities).
+4. **Any numbers, dates, percentages, or concrete facts** in the source.
+5. **Narrative essay-style paragraphs** — write as flowing prose, but prose
+   that CARRIES these facts, not empty filler. Where a list/diagram is clearer,
+   use a numbered/bulleted or code-block rendition of it.
+6. **Key points section** — after the narrative, a concise bullet list of the
+   concrete takeaways (not rephrasing of the narrative, actual items of fact).
+7. **For videos specifically**:
    - Include timestamps for major sections
    - Identify speakers and their roles
    - Note any visual content described
 
-4. **Language**: Match the source language unless the user requests otherwise.
+8. **Language**: By default, produce the summary in the SAME language as the
+   source content. If the user explicitly asks for a different language (e.g.
+   "résume en français" on an Arabic source), then translate — and in that case
+   keep all concrete terms, names and structures intact and faithfully
+   translated. **Never invent the language**: when in doubt, match the source.
+
+> **Self-check before saving:** re-read the summary. Does it teach the concrete
+> content of the source (names, structures, examples, distinctions)? If any
+> paragraph could be written without ever seeing the source (generic filler),
+> replace it with sourced specifics.
 
 ## Step 4: Save the summary
 
@@ -134,15 +159,19 @@ duration: "1h45"  # for videos, if available
 
 ## Summary
 
-(Narrative essay-style paragraphs — 3-6 paragraphs covering the full content in detail. Write as flowing prose, not bullet points. Include context, main arguments, supporting details, and conclusions.)
+(Written in the source language by default. 3-8 paragraphs of flowing prose,
+BUT prose that carries the real content: the concrete structures, named actors,
+relations, examples, and distinctions from the source. For hierarchical "who
+answers to whom" content, include the actual chains/diagrams as inline text or
+blocks — not just "the text explains the hierarchy.")
 
 ## Key Points
 
-- **Topic 1**: Description
-- **Topic 2**: Description
-- **Topic 3**: Description
+- **Concrete fact/notion 1**: substantive detail (who/what/how)
+- **Concrete fact/notion 2**: substantive detail
+- **Concrete fact/notion 3**: substantive detail
 
-(Continue with organized bullet points for quick reference)
+(Real, specific takeaways — NOT a rephrase of the narrative without new info.)
 
 ## Notable Quotes
 
@@ -177,8 +206,15 @@ After saving, tell the user:
 
 ## Quality guidelines
 
-- **Be thorough**: This is a DETAILED summary, not a quick overview. Cover all major points.
-- **Stay factual**: Don't add opinions or interpretations not in the source
-- **Preserve nuance**: If speakers disagree, note both sides
-- **Use the source language**: Don't translate unless asked
-- **Include context**: Explain background and significance, not just what was said
+- **Be thorough & concrete**: This is a DETAILED, information-dense summary, not
+  an overview. Reproduce the specifics: names, structures, relations, examples,
+  distinctions, figures. Avoid generic filler that adds no information.
+- **Faithful to the source**: Do not add opinions or interpretations not in the
+  source. Do not invent facts, figures, or attributions not present.
+- **Preserve nuance**: If the source distinguishes between two notions, or if
+  speakers disagree, capture those distinctions (e.g. "the wali is NOT the
+  hierarchical superior of the commune president").
+- **Language**: Match the source language by default; translate only on request,
+  and keep concrete terms intact when translating.
+- **Include context**: Explain background and significance, not just what was
+  said — but always grounded in the actual content.
