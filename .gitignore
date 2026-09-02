@@ -1,0 +1,21 @@
+# Slogs / caches
+*.log
+*.tmp
+__pycache__/
+*.pyc
+
+# Résumés générés (au cas où un serait placé ici par erreur)
+summaries/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environnements / secrets (ne jamais versionner)
+.env
+*.key
+config.json.local
+
+# Nœuds / outils
+node_modules/
+.agent-reach/
