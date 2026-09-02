@@ -7,6 +7,8 @@ description: Detailed summarization of YouTube videos, Reddit posts, web pages, 
 
 Detailed summarization of YouTube videos, Reddit posts, web pages, and LLM shared conversations. Outputs narrative essay-style summaries with bullet points, saved as Markdown files.
 
+This skill is **agent-agnostic**: it describes *what* to fetch and *how* to structure the summary, and relies on the host agent harness (opencode, Claude Code, Cursor, etc.) to execute the steps using its **own native tools and CLI** — fetching, running commands, and writing files. No custom helper binary is required.
+
 ## When to use
 
 Invoke this skill when the user asks to summarize, resume, or explain content from a URL. Trigger phrases include:
@@ -16,50 +18,58 @@ Invoke this skill when the user asks to summarize, resume, or explain content fr
 - "explain this https://..."
 - "tl;dr https://..."
 
-## Workflow
+## Step 0: Agent harness adaptation
 
-### Step 1: Detect content type
+This skill only uses general-purpose capabilities that every agent harness exposes. Map them as follows:
+
+| Step | Capability needed | How the agent provides it |
+|------|-------------------|---------------------------|
+| Fetch YouTube | Run a shell command (`yt-dlp`) | Agent's terminal/run-tool or `agent-reach` backend |
+| Fetch web/Reddit | Make an HTTP request (`curl` to Jina) | Agent's fetch/web tool or terminal |
+| Fetch LLM conv | Make an HTTP request | Agent's fetch/web tool |
+| Write output | Create a Markdown file | Agent's file-write tool (e.g. `Write`, `apply_patch`) |
+
+If the agent has a native web-fetch tool, prefer it for web pages; fall back to `curl https://r.jina.ai/URL` if it returns nothing useful.
+
+## Step 1: Detect content type
 
 Parse the URL to determine the source:
 
 | URL pattern | Type | Fetch method |
 |-------------|------|--------------|
-| `youtube.com/watch?v=` or `youtu.be/` | YouTube | agent-reach video |
-| `reddit.com/r/` or `reddit.com/user/` | Reddit | agent-reach social |
-| `chatgpt.com/share/` or `claude.ai/share/` | LLM conversation | Jina reader |
-| Anything else | Web page | Jina reader |
+| `youtube.com/watch?v=` or `youtu.be/` or `youtube.com/shorts/` | YouTube | `yt-dlp` (subtitles) |
+| `reddit.com/r/` or `reddit.com/user/` | Reddit | web fetch / Jina reader |
+| `chatgpt.com/share/` or `claude.ai/share/` | LLM conversation | web fetch / Jina reader |
+| Anything else | Web page | web fetch / Jina reader |
 
-### Step 2: Fetch content
+## Step 2: Fetch content
 
-Use agent-reach tools based on content type:
+Use general-purpose commands that any harness can run. Nothing here assumes a specific agent.
 
 #### YouTube videos
 ```bash
-# 1. Try subtitles first
+# 1. Try subtitles (Arabic, French, English, Spanish, German)
 yt-dlp --write-sub --write-auto-sub --sub-lang "ar,fr,en,es,de" --skip-download -o "/tmp/%(id)s" "URL"
 
-# 2. Read the .vtt file
+# 2. Read the generated .vtt file
 cat /tmp/VIDEO_ID.*.vtt
-
-# 3. If no subtitles or empty, use transcribe fallback
-agent-reach transcribe "URL"
 ```
 
-#### Reddit posts
+If no subtitles are available, or the content is empty:
+- If `agent-reach` is installed: run `agent-reach transcribe "URL"` (audio transcription).
+- Otherwise, at minimum capture the metadata so the summary has context:
 ```bash
-# Use rdt-cli or opencli
-rdt search "post title or url" --limit 5
-# or
-opencli reddit search "query" -f yaml
+yt-dlp --print "%(title)s | %(duration_string)s | %(channel)s" "URL"
 ```
 
-#### Web pages and LLM conversations
+#### Reddit posts / LLM conversations / Web pages
+Fetch with the agent's native web tool, or via Jina Reader (works from any shell):
 ```bash
-# Use Jina reader for clean content
 curl -s "https://r.jina.ai/URL"
 ```
+For Reddit specifically, if the page is blocked or heavy, try the old JSON mirror: `https://www.reddit.com/...json` or a printable mirror via Jina.
 
-### Step 3: Generate detailed summary
+## Step 3: Generate detailed summary
 
 Using the fetched content, generate a comprehensive summary with:
 
@@ -78,9 +88,9 @@ Using the fetched content, generate a comprehensive summary with:
 
 4. **Language**: Match the source language unless the user requests otherwise.
 
-### Step 4: Save the summary
+## Step 4: Save the summary
 
-Save to `~/summaries/` with this format:
+Save to `~/summaries/` with this format. Use the agent's file-writing capability to create the file.
 
 **Filename**: `YYYY-MM-DD-slug.md`
 - Date prefix for sorting
@@ -123,7 +133,7 @@ duration: "1h45"  # for videos, if available
 - Any other links mentioned in the content
 ```
 
-### Step 5: Confirm to user
+## Step 5: Confirm to user
 
 After saving, tell the user:
 - File saved to: `~/summaries/filename.md`
@@ -133,8 +143,9 @@ After saving, tell the user:
 
 - If content cannot be fetched: report the error and suggest alternatives
 - If content is too short or empty: inform the user the source may not have accessible content
-- If subtitles are unavailable for YouTube: try `agent-reach transcribe` as fallback
-- For Reddit: if API fails, try fetching via Jina reader with the reddit URL
+- For YouTube without subtitles: rely on metadata, or use `agent-reach transcribe` if installed
+- For Reddit: if the page API fails, try fetching the `...json` endpoint or a Jina-reader mirror
+- If the agent's native fetch tool fails, fall back to `curl -s "https://r.jina.ai/URL"`
 
 ## Quality guidelines
 

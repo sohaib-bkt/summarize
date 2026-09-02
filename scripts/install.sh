@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
 # install.sh — Installe le skill "summarize" + le skill "agent-reach"
-# dans les répertoires de skills d'un agent (opencode / claude / autres).
+# dans les répertoires de skills d'un agent (opencode / claude code / autres).
+#
+# Le skill est agnostique : il s'adapte aux outils natifs de n'importe quel
+# agent harness. Ce script ne fait que copier les skills dans le bon dossier
+# et vérifier les dépendances de fetch (yt-dlp / curl).
 #
 # Usage:
 #   ./install.sh                    # installe vers ~/.agents/skills (défaut)
 #   ./install.sh --dir=DIR          # installe vers un répertoire précis
 #   ./install.sh --help
-#
-# Le script copie aussi le script d'aide "summarize-cli" dans ~/.local/bin
-# si un répertoire d'installation le permet, et vérifie les dépendances.
 
 set -euo pipefail
 
@@ -17,7 +18,7 @@ set -euo pipefail
 # Chemins
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"   # ~/dev/summarize
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"   # ex: ~/dev/summarize
 SOURCE_SKILLS="$REPO_ROOT/skills"
 
 # Cible par défaut : répertoire de skills courant de l'agent
@@ -29,25 +30,29 @@ usage() {
 Usage: $0 [options]
 
 Installe les skills "summarize" et "agent-reach" depuis ce dépôt vers un
-répertoire de skills d'un agent.
+répertoire de skills d'un agent, puis vérifie les dépendances de fetch.
+
+Répertoires de skills courants par agent :
+  opencode / agents divers : ~/.agents/skills
+  Claude Code              : ~/.claude/skills
+  Cursor                   : ~/.cursor/skills
+  npx/@modelcontextprotocol : variable du dossier courant
 
 Options:
   --dir=DIR        Répertoire d'installation des skills
                    (défaut: ~/.agents/skills)
-  --no-cli         Ne pas installer le script d'aide summarize-cli
   -h, --help       Affiche cette aide
 
 Exemples:
-  ./install.sh                          # → ~/.agents/skills
-  ./install.sh --dir=~/.config/opencode # → pour un setup opencode config
+  ./install.sh                              # → ~/.agents/skills
+  ./install.sh --dir=~/.claude/skills       # → pour Claude Code
+  ./install.sh --dir=~/.cursor/skills       # → pour Cursor
 EOF
 }
 
-INSTALL_CLI=1
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dir=*) TARGET_DIR="${1#*=}" ;;
-    --no-cli) INSTALL_CLI=0 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Option inconnue: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -113,20 +118,7 @@ if [ "$MISSING" = "1" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Installer le script d'aide summarize-cli (optionnel)
-# ---------------------------------------------------------------------------
-if [ "$INSTALL_CLI" = "1" ] && [ -f "$SCRIPT_DIR/summarize-cli" ]; then
-  mkdir -p "$HOME/.local/bin"
-  cp "$SCRIPT_DIR/summarize-cli" "$HOME/.local/bin/summarize"
-  chmod +x "$HOME/.local/bin/summarize"
-  echo
-  echo "→ CLI 'summarize' installé dans ~/.local/bin"
-  echo "   Utilisation (auto-invocations agent en tête, sinon) :"
-  echo "   summarize <url>"
-fi
-
-# ---------------------------------------------------------------------------
-# 5. Dossier des résumés
+# 4. Dossier des résumés
 # ---------------------------------------------------------------------------
 mkdir -p "$HOME/summaries"
 echo
@@ -134,5 +126,5 @@ echo "→ Dossier de sortie des résumés : $HOME/summaries"
 
 echo
 echo "✔ Installation terminée."
-echo "  Redémarrez votre agent (opencode) pour que les skills soient chargés."
-echo "  Ensuite dites simplement : \"résume cette vidéo <url>\""
+echo "  Redémarrez votre agent (opencode / claude code / etc.) pour recharger les skills."
+echo "  Ensuite demandez simplement : \"résume cette vidéo <url>\" dans n'importe quel agent."

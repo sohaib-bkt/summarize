@@ -1,9 +1,15 @@
-# Summarize — résumé détaillé de contenu web, pour agents (opencode)
+# Summarize — résumé détaillé de contenu web, pour agents
 
-Skill + outillage pour générer des **résumés détaillés** (rédaction narrative +
+Skill pour générer des **résumés détaillés** (rédaction narrative +
 points clés) de vidéos YouTube, de posts Reddit, de pages web et de
 conversations LLM partagées, puis les enregistrer dans `~/summaries/` sous
 forme de fichiers Markdown.
+
+Il est **agnostique de l'agent harness** : il fonctionne aussi bien avec
+**opencode** qu'avec **Claude Code**, **Cursor** ou tout autre agent. Le skill
+décrit *quoi* récupérer et *comment* structurer le résumé, puis chaque agent
+l'exécute avec **ses propres outils natifs** (fetch web, terminal `yt-dlp`,
+écriture de fichiers). Aucun CLI maison n'est nécessaire.
 
 Ce dépôt est **autonome** : il contient le skill `summarize` **et** le skill
 `agent-reach` (avec toutes ses références), prêt à être cloné / poussé sur
@@ -19,7 +25,7 @@ summarize/
 ├── .gitignore
 ├── skills/
 │   ├── summarize/
-│   │   └── SKILL.md              ← le skill summarize (agent-reach requis)
+│   │   └── SKILL.md              ← le skill summarize (agnostique agent)
 │   └── agent-reach/
 │       ├── SKILL.md              ← le skill agent-reach (routeur 15 plateformes)
 │       ├── SKILL_en.md
@@ -32,8 +38,7 @@ summarize/
 │           ├── video.md
 │           └── finance.md
 └── scripts/
-    ├── install.sh                ← installation automatique des skills
-    └── summarize-cli             ← en ligne de mire : récupération du contenu brut
+    └── install.sh                ← installation des skills dans n'importe quel agent
 ```
 
 ---
@@ -65,36 +70,42 @@ Dépendances principales (vérifiées par `install.sh`) :
 
 ---
 
-## Installation
+## Installation (n'importe quel agent)
 
 ### Option A — Installation automatique
 
 ```bash
 cd summarize
-./scripts/install.sh                 # installe vers ~/.agents/skills
-./scripts/install.sh --dir=DIR       # installe vers un répertoire précis
+./scripts/install.sh                          # → défaut ~/.agents/skills
+./scripts/install.sh --dir=~/.claude/skills   # → Claude Code
+./scripts/install.sh --dir=~/.cursor/skills   # → Cursor
+./scripts/install.sh --dir=DIR                # → autre agent
 ```
 
 Ce script :
 1. Copie `skills/summarize` et `skills/agent-reach` vers le dossier cible.
-2. Vérifie les dépendances (`yt-dlp`, `curl`, …).
-3. Installe `summarize-cli` dans `~/.local/bin` (option `--no-cli` pour omettre).
-4. Crée le dossier de sortie `~/summaries`.
+2. Vérifie les dépendances de fetch (`yt-dlp`, `curl`, …).
+3. Crée le dossier de sortie `~/summaries`.
 
-Puis redémarrez votre agent (opencode) pour recharger les skills.
+Puis redémarrez votre agent pour recharger les skills.
+
+> Répertoires de skills selon l'agent :
+> - opencode / divers : `~/.agents/skills`
+> - Claude Code : `~/.claude/skills`
+> - Cursor : `~/.cursor/skills`
 
 ### Option B — Copie manuelle
 
 ```bash
-mkdir -p ~/.agents/skills
+mkdir -p ~/.agents/skills   # ou ~/.claude/skills, ~/.cursor/skills…
 cp -R skills/* ~/.agents/skills/
-# puis redémarrez opencode
+# puis redémarrez votre agent
 ```
 
 ### Vérification
 
-Dans un agent opencode, tapez `/skills` — vous devriez voir `summarize`
-et `agent-reach`. En CLI :
+Dans agent opencode, tapez `/skills` — vous devriez voir `summarize` et
+`agent-reach`. En CLI :
 
 ```bash
 ls ~/.agents/skills/summarize ~/.agents/skills/agent-reach
@@ -104,9 +115,7 @@ ls ~/.agents/skills/summarize ~/.agents/skills/agent-reach
 
 ## Utilisation
 
-### Dans opencode (recommandé)
-
-Après redémarrage, demandez simplement, dans votre langue :
+Quel que soit l'agent, demandez simplement, dans votre langue :
 
 ```
 résume cette vidéo https://youtu.be/XXXX
@@ -119,20 +128,13 @@ tl;dr https://chatgpt.com/share/...
 Le skill `summarize` est déclenché automatiquement (phrases → `MUST USE`).
 Il :
 1. Détecte le type de contenu (YouTube / Reddit / web / conversation LLM).
-2. Récupère la matière première via agent-reach (`yt-dlp`, Jina, `agent-reach`).
+2. Récupère la matière première avec les **outils natifs de l'agent**
+   (`yt-dlp`, fetch web / Jina, écriture de fichiers).
 3. Rédige un **résumé détaillé** : essai narratif + points clés + citations.
 4. Le sauvegarde dans `~/summaries/AAAA-MM-JJ-titre.md`.
 
-### En CLI (filet de sécurité)
-
-Quand aucun agent n'est disponible (ou pour prérécupérer le contenu) :
-
-```bash
-summarize <url>                 # affiche le contenu brut
-summarize <url> -o /tmp/x.txt   # écrit le contenu brut dans un fichier
-```
-
-> La **rédaction du résumé** est faite par l'agent (modèle), pas par ce script.
+> La **rédaction du résumé** est faite par le modèle de l'agent ; le skill ne
+> fournit ni binaire, ni CLI annexe — il s'adapte aux capacités de l'hôte.
 
 ### Format de sortie
 
