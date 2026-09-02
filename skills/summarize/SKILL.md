@@ -63,11 +63,34 @@ yt-dlp --print "%(title)s | %(duration_string)s | %(channel)s" "URL"
 ```
 
 #### Reddit posts / LLM conversations / Web pages
-Fetch with the agent's native web tool, or via Jina Reader (works from any shell):
+
+> **IMPORTANT — pages JavaScript (chatgpt.com/share, claude.ai/share, etc.)** :
+> ces pages ne renvoient rien à un fetch direct, tout est rendu côté client JS.
+> **Ne pas ouvrir Playwright / Chrome / navigateur headless pour ça** (Chrome
+> n'est pas installé et son installation échoue). **Jina Reader extrait déjà le
+> texte de ces pages JS.** Utilisez toujours la hiérarchie ci-dessous.
+
+Order of attempts — stop at the first that returns real content (non-empty text):
+
+1. **Jina Reader first** (works from any shell, no browser needed):
 ```bash
 curl -s "https://r.jina.ai/URL"
 ```
-For Reddit specifically, if the page is blocked or heavy, try the old JSON mirror: `https://www.reddit.com/...json` or a printable mirror via Jina.
+   For `chatgpt.com/share/...` and `claude.ai/share/...` this is the standard
+   way and it reliably returns the full conversation as Markdown.
+
+2. If Jina is empty, try the printable/Google-cache-like mirror via Jina with
+   a trailing hint, or retry. Some pages need `https://r.jina.ai/https://URL`.
+
+3. **Only as a last resort** — if Jina truly returns nothing AND no native
+   fetch tool worked: report to the user that the page is not accessible and
+   suggest they copy-paste the text. **Do NOT attempt to install Chrome or run
+   Playwright** — that will fail and wastes time. The agent's own web/browser
+   tool (if it already has a working browser) may be used, but never install a
+   browser during the summary.
+
+For Reddit specifically, if the page is blocked or heavy, try the JSON mirror
+`https://www.reddit.com/...json` or a printable mirror via Jina.
 
 ## Step 3: Generate detailed summary
 
@@ -146,6 +169,11 @@ After saving, tell the user:
 - For YouTube without subtitles: rely on metadata, or use `agent-reach transcribe` if installed
 - For Reddit: if the page API fails, try fetching the `...json` endpoint or a Jina-reader mirror
 - If the agent's native fetch tool fails, fall back to `curl -s "https://r.jina.ai/URL"`
+- **JavaScript pages (chatgpt.com/share, claude.ai/share)**: Jina Reader
+  (`curl -s "https://r.jina.ai/URL"`) renders these fine — prefer it over any
+  browser. **Never install Chrome / run Playwright / npx playwright install**
+  as part of this skill; if that path is reached, stop, and ask the user to
+  paste the text instead.
 
 ## Quality guidelines
 
